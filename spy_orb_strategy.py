@@ -27,7 +27,7 @@ class SPYORBStrategy:
         itm_offset: float = 1.05,
         market_open: str = "08:30:00",
         market_close: str = "15:00:00",
-        force_close_time: str = "14:55:00",
+        force_close_time: str = "15:50:00",
         bar_size: str = "5 mins",
         paper_trading: bool = True,
         port: int = 7497,
@@ -55,7 +55,7 @@ class SPYORBStrategy:
         self.half_position_closed = False
 
         # IB & timezone
-        self.tz = pytz.timezone("US/Central")
+        self.tz = pytz.timezone("US/Eastern")
         self.ib = IB()
 
     # ---------------------------------------------------------------------
@@ -155,8 +155,8 @@ class SPYORBStrategy:
 
     def calculate_opening_range(self, df: pd.DataFrame):
         today = datetime.datetime.now(self.tz).date()
-        # Filter today & first 15 minutes (3 * 5-minute candles)
-        today_df = df[df["date"].dt.date == today]
+        # Filter today's data
+        today_df = df[df["date"].dt.date == today].copy()
         if today_df.empty:
             return  # Wait until we have today's data
 
@@ -164,9 +164,15 @@ class SPYORBStrategy:
             datetime.datetime.combine(today, datetime.datetime.strptime(self.market_open, "%H:%M:%S").time())
         )
         range_end = market_open_dt + datetime.timedelta(minutes=15)
-        opening_df = today_df[today_df["date"] < range_end]
+        
+        # Only use candles that start at or after market open and before range end
+        opening_df = today_df[
+            (today_df["date"] >= market_open_dt) & 
+            (today_df["date"] < range_end)
+        ]
+        
         if len(opening_df) < 3:
-            return  # Need 3 complete candles
+            return  # Need exactly 3 complete candles (8:30, 8:35, 8:40)
 
         self.opening_range_high = opening_df["high"].max()
         self.opening_range_low = opening_df["low"].min()
@@ -245,7 +251,7 @@ class SPYORBStrategy:
                 # Force-close time
                 if self.is_force_close_time() and self.position is not None:
                     print("Force-close time reached - closing position.")
-                    self.exit_all("14:55 force close")
+                    self.exit_all("15:50 force close")
 
                 # Historical bars - used for signals
                 df = self.get_intraday_5min()

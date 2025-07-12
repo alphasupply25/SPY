@@ -55,7 +55,7 @@ You can modify the following parameters in the script:
 - `market_open`: Market open time (default: "08:30:00")
 - `market_close`: Market close time (default: "15:00:00")
 - `signal_time`: Time to check initial conditions (default: "09:00:00")
-- `force_close_time`: Time to force close positions (default: "14:55:00")
+- `force_close_time`: Time to force close positions (default: "15:50:00")
 - `ema_short`: Short EMA period (default: 9)
 - `ema_long`: Long EMA period (default: 20)
 - `paper_trading`: Whether to use paper trading (default: True)

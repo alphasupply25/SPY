@@ -28,7 +28,7 @@ class SPYREVStrategy:
         market_close: str = "15:00:00",
         monitor_start: str = "08:25:00",
         no_new_trades_time: str = "15:30:00",
-        force_close_time: str = "14:55:00",
+        force_close_time: str = "15:50:00",
         bar_size: str = "5 mins",
         rsi_period: int = 14,
         ema_period: int = 9,
@@ -65,7 +65,7 @@ class SPYREVStrategy:
         self.in_trade = False  # Track if we are in a trade
 
         # IB & timezone
-        self.tz = pytz.timezone("US/Central")
+        self.tz = pytz.timezone("US/Eastern")
         self.ib = IB()
 
     # ---------------------------------------------------------------------
@@ -201,19 +201,19 @@ class SPYREVStrategy:
         if self.in_trade:  # If we're already in a trade, skip RSI check
             return None
 
-        if len(df) < 1:
+        if len(df) < 2:
             return None
             
-        last_candle = df.iloc[-1]  # Last completed candle
+        last_candle = df.iloc[-2]  # Use second-to-last (completed) candle
         rsi = last_candle['rsi']
 
         if pd.isna(rsi):
             return None
             
-        if rsi < self.rsi_oversold - self.rsi_threshold:
+        if rsi <= self.rsi_oversold - self.rsi_threshold:
             self.rsi_signal_price = last_candle['close']
             return "LONG_SETUP"
-        elif rsi > self.rsi_overbought + self.rsi_threshold:
+        elif rsi >= self.rsi_overbought + self.rsi_threshold:
             self.rsi_signal_price = last_candle['close']
             return "SHORT_SETUP"
         
@@ -224,19 +224,19 @@ class SPYREVStrategy:
         if self.in_trade:  # Skip entry checks if in a trade
             return None
             
-        if len(df) < 1 or self.rsi_signal is None:
+        if len(df) < 2 or self.rsi_signal is None:
             return None
             
-        last_candle = df.iloc[-1]  # Last completed candle
+        last_candle = df.iloc[-2]  # Use second-to-last (completed) candle
         close_price = last_candle['close']
         ema_9 = last_candle['ema_9']
         
         if pd.isna(ema_9):
             return None
             
-        if self.rsi_signal == "LONG_SETUP" and close_price > ema_9 + self.ema_threshold:
+        if self.rsi_signal == "LONG_SETUP" and close_price >= ema_9 + self.ema_threshold:
             return "ENTER_LONG"
-        elif self.rsi_signal == "SHORT_SETUP" and close_price < ema_9 - self.ema_threshold:
+        elif self.rsi_signal == "SHORT_SETUP" and close_price <= ema_9 - self.ema_threshold:
             return "ENTER_SHORT"
             
         return None
@@ -319,7 +319,48 @@ class SPYREVStrategy:
         """Close all open positions."""
         for position in self.positions[:]:  # Copy list to avoid modification during iteration
             self.exit_position(position, reason)
+    # TESTING
+    def check_stop_loss(self, position: dict, last_candle: pd.Series) -> bool:
+        """Check if position should be stopped out."""
+        current_price = self.get_underlying_price()
+        stop_price = position['stop_loss_price']
+        
+        if position['type'] == "CALL":
+            # For calls, stop if price goes below stop loss
+            return current_price <= stop_price
+        else:
+            # For puts, stop if price goes above stop loss
+            return current_price >= stop_price
 
+    def check_profit_targets(self, position: dict) -> str | None:
+        """Check profit targets for position management."""
+        current_underlying = self.get_underlying_price()
+        current_option_price = self.ib.reqTickers(position['contract'])[0].marketPrice()
+        
+        # First profit target - underlying move
+        if not position['half_sold']:
+            if position['type'] == "CALL":
+                if current_underlying >= position['entry_underlying_price'] + self.underlying_move_target:
+                    return "FIRST_TARGET"
+            else:  # PUT
+                if current_underlying <= position['entry_underlying_price'] - self.underlying_move_target:
+                    return "FIRST_TARGET"
+        
+        # Breakeven stop after half sold
+        if position['half_sold']:
+            if current_option_price <= position['entry_option_price']:
+                return "BREAKEVEN_STOP"
+        
+        # Second profit target - ITM
+        if position['type'] == "CALL":
+            if current_underlying >= position['entry_strike'] + self.itm_offset:
+                return "SECOND_TARGET"
+        else:  # PUT
+            if current_underlying <= position['entry_strike'] - self.itm_offset:
+                return "SECOND_TARGET"
+        
+        return None
+    # TESTING
     # ---------------------------------------------------------------------
     # Main loop
     # ---------------------------------------------------------------------
@@ -352,7 +393,7 @@ class SPYREVStrategy:
                 # Force-close time
                 if self.is_force_close_time() and self.positions:
                     print("Force-close time reached - closing all positions.")
-                    self.close_all_positions("14:55 force close")
+                    self.close_all_positions("15:50 force close")
 
                 # Start monitoring
                 if not self.monitoring_started and self.should_start_monitoring():
@@ -361,12 +402,14 @@ class SPYREVStrategy:
 
                 if not self.monitoring_started or self.positions[:]:
                     # Manage existing positions
+                    # Manage existing positions first
+                if self.positions:
                     for position in self.positions[:]:  # Copy to avoid modification during iteration
                         # Check stop loss
                         if self.check_stop_loss(position, last_candle):
                             self.exit_position(position, "Stop loss")
                             continue
-    
+
                         # Check profit targets
                         target_result = self.check_profit_targets(position)
                         if target_result == "FIRST_TARGET":
@@ -375,8 +418,7 @@ class SPYREVStrategy:
                             self.exit_position(position, "Breakeven stop")
                         elif target_result == "SECOND_TARGET":
                             self.exit_position(position, "Second profit target")
-                    time.sleep(10)
-                    continue
+                    continue  # Skip signal checking while managing positions!
                     
 
                 # Get historical data

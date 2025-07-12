@@ -32,7 +32,7 @@ class TestSPYEMAChad(unittest.TestCase):
         self.assertEqual(self.strategy.market_open, "08:30:00")
         self.assertEqual(self.strategy.market_close, "15:00:00")
         self.assertEqual(self.strategy.signal_time, "09:00:00")
-        self.assertEqual(self.strategy.force_close_time, "14:55:00")
+        self.assertEqual(self.strategy.force_close_time, "15:50:00")
         self.assertEqual(self.strategy.ema_short, 9)
         self.assertEqual(self.strategy.ema_long, 20)
         self.assertEqual(self.strategy.paper_trading, True)

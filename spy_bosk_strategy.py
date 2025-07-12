@@ -28,7 +28,7 @@ class SPYBOSKStrategy:
         market_close: str = "15:00:00",
         monitor_start: str = "08:30:00",
         no_new_trades_time: str = "14:00:00",
-        force_close_time: str = "14:55:00",
+        force_close_time: str = "15:50:00",
         bar_size: str = "5 mins",
         ema9_period: int = 9,
         ema20_period: int = 20,
@@ -63,7 +63,7 @@ class SPYBOSKStrategy:
         self.last_profit_side: str | None = None  # "LONG" or "SHORT"
 
         # IB / timezone helpers
-        self.tz = pytz.timezone("US/Central")
+        self.tz = pytz.timezone("US/Eastern")
         self.ib = IB()
 
     # Interactive Brokers helpers
@@ -269,7 +269,7 @@ class SPYBOSKStrategy:
                 # Force-close time
                 if self.is_force_close_time() and self.positions:
                     print("Force-close time reached - closing all positions.")
-                    self.close_all_positions("14:55 force close")
+                    self.close_all_positions("15:50 force close")
 
                 # Start monitoring after monitor_start
                 if not monitoring_started and self.should_start_monitoring():
