@@ -11,7 +11,7 @@ from ib_insync import *
 
 class SPYEMAChad:
     def __init__(self, ticker="SPY", profit_target=1.0, market_open="08:30:00", 
-                 market_close="15:00:00", signal_time="09:00:00", force_close_time="15:50:00",
+                 market_close="16:00:00", signal_time="09:00:00", force_close_time="15:50:00",
                  timeframe="5 mins", ema_short=9, ema_long=20, paper_trading=True, threshold=0.0003, trading_time=5):
         """
         Initialize the trading strategy with parameters
@@ -482,7 +482,7 @@ if __name__ == "__main__":
     parser.add_argument('--ticker', type=str, default='SPY', help='Ticker symbol to trade')
     parser.add_argument('--profit_target', type=float, default=1.0, help='Target profit in dollars per contract')
     parser.add_argument('--market_open', type=str, default='08:30:00', help='Market open time (HH:MM:SS)')
-    parser.add_argument('--market_close', type=str, default='15:00:00', help='Market close time (HH:MM:SS)')
+    parser.add_argument('--market_close', type=str, default='16:00:00', help='Market close time (HH:MM:SS)')
     parser.add_argument('--signal_time', type=str, default='09:00:00', help='Time to check initial conditions (HH:MM:SS)')
     parser.add_argument('--force_close_time', type=str, default='15:50:00', help='Time to force close positions (HH:MM:SS)')
     parser.add_argument('--timeframe', type=str, default='5 mins', help='Chart timeframe')

@@ -53,7 +53,7 @@ You can modify the following parameters in the script:
 - `ticker`: Symbol to trade (default: "SPY")
 - `profit_target`: Target profit in dollars (default: 1.0)
 - `market_open`: Market open time (default: "08:30:00")
-- `market_close`: Market close time (default: "15:00:00")
+- `market_close`: Market close time (default: "16:00:00")
 - `signal_time`: Time to check initial conditions (default: "09:00:00")
 - `force_close_time`: Time to force close positions (default: "15:50:00")
 - `ema_short`: Short EMA period (default: 9)
