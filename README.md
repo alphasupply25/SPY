@@ -6,7 +6,7 @@
 
 This strategy trades SPY (or other tickers) based on the relationship between price, 9 EMA, 20 EMA, and VWAP:
 
-1. At 9:00 AM Central Time, check if the price is above or below all three indicators (9 EMA, 20 EMA, VWAP)
+1. At 9:00 AM Eastern Time, check if the price is above or below all three indicators (9 EMA, 20 EMA, VWAP)
 2. If price is above all three, wait for price to touch the 9 EMA for a long entry
 3. If price is below all three, wait for price to touch the 9 EMA for a short entry
 4. Exit when:

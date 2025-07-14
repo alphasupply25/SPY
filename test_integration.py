@@ -17,7 +17,7 @@ class TestSPYEMAChadIntegration(unittest.TestCase):
         # Create a strategy instance with mocked IB connection
         self.strategy = SPYEMAChad(paper_trading=True)
         self.strategy.ib = Mock()
-        self.strategy.tz = pytz.timezone('US/Central')
+        self.strategy.tz = pytz.timezone('US/Eastern')
         
         # Create realistic test data for a complete trading day
         # This will be used for all integration tests

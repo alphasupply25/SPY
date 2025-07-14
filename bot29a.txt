@@ -6,7 +6,7 @@ Brokers via their API for live trading. Please let me know if you know of a bett
 this happen. But, I use Interactive Brokers.
 The best way I know how to explain what I am looking for is by using examples. Each
 example includes a screen shot of what I have attempted to describe.
-*all of this is based on a 5 minute ETH chart in the central US time zone (market open from
+*all of this is based on a 5 minute ETH chart in the eastern US time zone (market open from
 8:30am-3:00pm)*
 ---------------------------------------------------------------------------------------------------Summary:
 If the price at 9:00am is above the 9 EMA, and the 20 EMA, and the VWAP, then wait until

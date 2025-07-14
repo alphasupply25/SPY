@@ -18,7 +18,7 @@ class TestSPYEMAChad(unittest.TestCase):
         # Mock the IB connection
         self.strategy.ib = Mock()
         # Set a fixed timezone for testing
-        self.strategy.tz = pytz.timezone('US/Central')
+        self.strategy.tz = pytz.timezone('US/Eastern')
         
     def tearDown(self):
         """Clean up after each test method."""
