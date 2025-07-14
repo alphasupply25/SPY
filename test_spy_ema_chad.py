@@ -29,7 +29,7 @@ class TestSPYEMAChad(unittest.TestCase):
         # Test default parameters
         self.assertEqual(self.strategy.ticker, "SPY")
         self.assertEqual(self.strategy.profit_target, 1.0)
-        self.assertEqual(self.strategy.market_open, "08:30:00")
+        self.assertEqual(self.strategy.market_open, "09:30:00")
         self.assertEqual(self.strategy.market_close, "16:00:00")
         self.assertEqual(self.strategy.signal_time, "09:00:00")
         self.assertEqual(self.strategy.force_close_time, "15:50:00")

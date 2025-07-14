@@ -7,7 +7,7 @@ from ib_insync import *
 from spy_ema_chad import SPYEMAChad
 
 class OptionsTrader(SPYEMAChad):
-    def __init__(self, ticker="SPY", profit_target=1.0, market_open="08:30:00",
+    def __init__(self, ticker="SPY", profit_target=1.0, market_open="09:30:00",
                  market_close="16:00:00", signal_time="09:00:00", force_close_time="15:50:00",
                  timeframe="5 mins", ema_short=9, ema_long=20, paper_trading=True,
                  option_type="call", dte_target=14, strike_offset=0, contracts=1):

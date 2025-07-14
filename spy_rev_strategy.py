@@ -24,7 +24,7 @@ class SPYREVStrategy:
         contracts: int = 2,
         underlying_move_target: float = 1.0,
         itm_offset: float = 1.05,
-        market_open: str = "08:30:00",
+        market_open: str = "09:30:00",
         market_close: str = "16:00:00",
         monitor_start: str = "08:25:00",
         no_new_trades_time: str = "15:30:00",

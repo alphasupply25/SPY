@@ -31,7 +31,7 @@ class TestSPYORBStrategy(unittest.TestCase):
         self.assertEqual(self.strategy.contracts, 2)
         self.assertEqual(self.strategy.underlying_move_target, 1.0)
         self.assertEqual(self.strategy.itm_offset, 1.05)
-        self.assertEqual(self.strategy.market_open, "08:30:00")
+        self.assertEqual(self.strategy.market_open, "09:30:00")
         self.assertEqual(self.strategy.market_close, "16:00:00")
         self.assertEqual(self.strategy.force_close_time, "15:50:00")
         self.assertEqual(self.strategy.bar_size, "5 mins")
