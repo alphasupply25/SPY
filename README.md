@@ -12,7 +12,7 @@ This strategy trades SPY (or other tickers) based on the relationship between pr
 4. Exit when:
    - Take profit: $1.00 gain per contract
    - Stop loss: Candle body closes opposite to all three indicators
-   - Force close: Any open position is closed at 2:55 PM
+   - Force close: Any open position is closed at 3:50 PM
 
 The strategy is designed for 5-minute bars and trades only once per day.
 
