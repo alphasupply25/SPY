@@ -400,25 +400,25 @@ class SPYREVStrategy:
                     self.monitoring_started = True
                     print(f"Starting monitoring at {datetime.datetime.now(self.tz)}")
 
-                if not self.monitoring_started or self.positions[:]:
-                    # Manage existing positions
-                    # Manage existing positions first
-                if self.positions:
-                    for position in self.positions[:]:  # Copy to avoid modification during iteration
-                        # Check stop loss
-                        if self.check_stop_loss(position, last_candle):
-                            self.exit_position(position, "Stop loss")
-                            continue
+                    if not self.monitoring_started or self.positions[:]:
+                        # Manage existing positions
+                        # Manage existing positions first
+                        if self.positions:
+                            for position in self.positions[:]:  # Copy to avoid modification during iteration
+                                # Check stop loss
+                                if self.check_stop_loss(position, last_candle):
+                                    self.exit_position(position, "Stop loss")
+                                    continue
 
-                        # Check profit targets
-                        target_result = self.check_profit_targets(position)
-                        if target_result == "FIRST_TARGET":
-                            self.exit_position(position, "First profit target", partial=True)
-                        elif target_result == "BREAKEVEN_STOP":
-                            self.exit_position(position, "Breakeven stop")
-                        elif target_result == "SECOND_TARGET":
-                            self.exit_position(position, "Second profit target")
-                    continue  # Skip signal checking while managing positions!
+                                # Check profit targets
+                                target_result = self.check_profit_targets(position)
+                                if target_result == "FIRST_TARGET":
+                                    self.exit_position(position, "First profit target", partial=True)
+                                elif target_result == "BREAKEVEN_STOP":
+                                    self.exit_position(position, "Breakeven stop")
+                                elif target_result == "SECOND_TARGET":
+                                    self.exit_position(position, "Second profit target")
+                            continue  # Skip signal checking while managing positions!
                     
 
                 # Get historical data
