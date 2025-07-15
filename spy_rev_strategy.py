@@ -35,7 +35,7 @@ class SPYREVStrategy:
         rsi_oversold: float = 30.0,
         rsi_overbought: float = 70.0,
         paper_trading: bool = True,
-        port: int = 7497,
+        port: int = 7498,
         rsi_threshold: float = 0.01,
         ema_threshold: float = 0.01,
     ):
@@ -476,7 +476,7 @@ if __name__ == "__main__":
     parser.add_argument("--paper_trading", action="store_true", help="Use paper trading account")
     parser.add_argument("--rsi_threshold", type=float, default=0.01, help="RSI threshold")
     parser.add_argument("--ema_threshold", type=float, default=0.01, help="EMA threshold")
-    parser.add_argument("--port", type=int, default=7497, help="Port number")
+    parser.add_argument("--port", type=int, default=7498, help="Port number")
     args = parser.parse_args()
 
     strategy = SPYREVStrategy(

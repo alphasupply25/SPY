@@ -30,7 +30,7 @@ class SPYORBStrategy:
         force_close_time: str = "15:50:00",
         bar_size: str = "5 mins",
         paper_trading: bool = True,
-        port: int = 7497,
+        port: int = 7498,
     ):
         self.ticker = ticker
         self.contracts = contracts
@@ -341,8 +341,8 @@ if __name__ == "__main__":
     parser.add_argument("--contracts", type=int, default=2, help="Number of option contracts to trade")
     parser.add_argument("--underlying_move_target", type=float, default=1.0, help="First profit target (underlying $ move)")
     parser.add_argument("--itm_offset", type=float, default=1.05, help="Underlying distance beyond strike for second target")
-    parser.add_argument("--paper_trading", action="store_true", help="Use paper trading account (7497)")
-    parser.add_argument("--port", type=int, default=7497, help="Port number")
+    parser.add_argument("--paper_trading", action="store_true", help="Use paper trading account (7498)")
+    parser.add_argument("--port", type=int, default=7498, help="Port number")
 
     args = parser.parse_args()
 

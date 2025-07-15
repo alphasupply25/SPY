@@ -32,7 +32,7 @@ class MultiTickerTrader:
     def connect_to_ib(self, host='127.0.0.1', port=None, client_id=1):
         """Connect to Interactive Brokers TWS or Gateway"""
         if port is None:
-            port = 7497 if self.paper_trading else 7496
+            port = 7498 if self.paper_trading else 7498
             
         try:
             self.ib.connect(host, port, clientId=client_id)

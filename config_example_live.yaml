@@ -11,7 +11,7 @@ strategies:
       underlying_move_target: 0.75  # Tighter profit targets
       itm_offset: 1.25
       paper_trading: false  # LIVE TRADING
-      port: 7496  # Live trading port
+      port: 7498  # Live trading port
 
   orb:
     enabled: false  # Disabled in this example
@@ -22,7 +22,7 @@ strategies:
       underlying_move_target: 0.75
       itm_offset: 1.25
       paper_trading: false
-      port: 7500
+      port: 7498
 
   rev:
     enabled: true
@@ -37,7 +37,7 @@ strategies:
       rsi_oversold: 25.0  # More extreme levels
       rsi_overbought: 75.0
       paper_trading: false
-      port: 7501
+      port: 7498
 
 # Global settings
 global:

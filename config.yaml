@@ -12,7 +12,7 @@ strategies:
       underlying_move_target: 1.55  # 1 ITM + $0.05 from strike
       itm_offset: 2.05               # 2 ITM + $0.05 from strike
       paper_trading: true
-      port: 7497
+      port: 7498
 
   spx_orb:
     enabled: false
@@ -23,7 +23,7 @@ strategies:
       underlying_move_target: 2.25  # 2 ITM + $0.25 from strike
       itm_offset: 4.25               # 4 ITM + $0.25 from strike
       paper_trading: true
-      port: 7497
+      port: 7498
 
   qqq_orb:
     enabled: true
@@ -80,7 +80,7 @@ strategies:
       paper_trading: true
       rsi_threshold: 0.01 # this number is subtracted from oversold, added to overbought. (so for this case, it would be 29.99 oversold, 70.01 overbought)
       ema_threshold: 0.01 # this number is subtracted from short setup, added to long setup. (so for this case, it would be 9.01 long, 8.99 short)
-      port: 7497
+      port: 7498
 
   spx_rev:
     enabled: false
@@ -91,7 +91,7 @@ strategies:
       underlying_move_target: 2.25  # 2 ITM + $0.25
       itm_offset: 4.25               # 4 ITM + $0.25
       paper_trading: true
-      port: 7499
+      port: 7498
 
   qqq_rev:
     enabled: true
@@ -102,7 +102,7 @@ strategies:
       underlying_move_target: 0.80  # same as SPY
       itm_offset: 2.05
       paper_trading: true
-      port: 7499
+      port: 7498
 
   tsla_rev:
     enabled: true
@@ -113,7 +113,7 @@ strategies:
       underlying_move_target: 2.00  # ATM + $0.15 with $1.00 minimum move
       itm_offset: 1.05
       paper_trading: true
-      port: 7499
+      port: 7498
 
   iwm_rev:
     enabled: true
@@ -124,7 +124,7 @@ strategies:
       underlying_move_target: 0.60  # ATM + $0.02 with $0.60 minimum move
       itm_offset: 1.02
       paper_trading: true
-      port: 7499
+      port: 7498
 
   spy_bosk: # Added this since it was missing from the file.
     enabled: true
@@ -135,7 +135,7 @@ strategies:
       underlying_move_target: 1.0
       itm_offset: 1.05
       paper_trading: true
-      port: 7500
+      port: 7498
 
 # Global settings
 global:

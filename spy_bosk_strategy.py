@@ -36,7 +36,7 @@ class SPYBOSKStrategy:
         kc_mult: float = 1.5,
         adx_period: int = 14,  # ADX period (standard is 14)
         paper_trading: bool = True,
-        port: int = 7497,
+        port: int = 7498,
     ):
         # Core parameters
         self.ticker = ticker

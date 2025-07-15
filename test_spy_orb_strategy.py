@@ -77,7 +77,7 @@ class TestSPYORBStrategy(unittest.TestCase):
         
         # Verify correct port for paper trading
         args, kwargs = self.strategy.ib.connect.call_args
-        self.assertEqual(args[1], 7497)  # Paper trading port
+        self.assertEqual(args[1], 7498)  # Paper trading port
         
         # Mock failed connection
         self.strategy.ib.connect = MagicMock(side_effect=Exception("Connection failed"))
