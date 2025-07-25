@@ -142,3 +142,4 @@ global:
   log_level: "INFO"
   max_retries: 3
   restart_on_failure: true
+  startup_delay: 2 

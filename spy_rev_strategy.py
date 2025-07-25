@@ -68,6 +68,9 @@ class SPYREVStrategy:
         self.tz = pytz.timezone("US/Eastern")
         self.ib = IB()
 
+        # Dynamic Client Id
+        self.client_id = hash(f"{self.ticker}_{id(self)}") % 100 + 1
+
     # ---------------------------------------------------------------------
     # Interactive Brokers helpers
     # ---------------------------------------------------------------------
@@ -79,7 +82,7 @@ class SPYREVStrategy:
                 if self.ib.isConnected():
                     self.ib.disconnect()
                     time.sleep(1)
-                self.ib.connect(host, port, clientId=client_id)
+                self.ib.connect(host, port, clientId=self.client_id)
                 print(
                     f"Connected to Interactive Brokers {'Paper' if self.paper_trading else 'Live'} trading"
                 )

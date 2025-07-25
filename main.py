@@ -200,7 +200,7 @@ class StrategyManager:
         self.logger.info(f"Starting {len(enabled_strategies)} strategies...")
         
         # Start each strategy in its own thread
-        for strategy_name, strategy_config in enabled_strategies.items():
+        for i, (strategy_name, strategy_config) in enumerate(enabled_strategies.items()):
             thread = threading.Thread(
                 target=self._run_strategy,
                 args=(strategy_name, strategy_config),
@@ -209,6 +209,10 @@ class StrategyManager:
             )
             self.threads[strategy_name] = thread
             thread.start()
+            
+            # Add delay between starts
+            if i < len(enabled_strategies) - 1:  # Don't delay after last one
+                time.sleep(3)  # 3 second delay between strategy starts
         
         self.logger.info("All strategies started.")
     

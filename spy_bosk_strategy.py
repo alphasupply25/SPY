@@ -66,6 +66,9 @@ class SPYBOSKStrategy:
         self.tz = pytz.timezone("US/Eastern")
         self.ib = IB()
 
+        # Dynamic Client Id
+        self.client_id = hash(f"{self.ticker}_{id(self)}") % 100 + 1
+
     # Interactive Brokers helpers
     def connect_to_ib(self, host: str = "127.0.0.1", client_id: int = 11, max_retries: int = 3) -> bool:
         """Connect to TWS / IB Gateway."""
@@ -75,7 +78,7 @@ class SPYBOSKStrategy:
                 if self.ib.isConnected():
                     self.ib.disconnect()
                     time.sleep(1)
-                self.ib.connect(host, port, clientId=client_id)
+                self.ib.connect(host, port, clientId=self.client_id)
                 print(
                     f"Connected to Interactive Brokers {'Paper' if self.paper_trading else 'Live'} trading"
                 )
@@ -112,6 +115,79 @@ class SPYBOSKStrategy:
             contract = details[0].contract
             self.ib.qualifyContracts(contract)
         return contract
+    # ---------------------------------------------------------------------
+    # Market & timing helpers
+    # ---------------------------------------------------------------------
+    def is_market_open(self) -> bool:
+        now = datetime.datetime.now(self.tz)
+        today = now.date()
+        mo = self.tz.localize(
+            datetime.datetime.combine(today, datetime.datetime.strptime(self.market_open, "%H:%M:%S").time())
+        )
+        mc = self.tz.localize(
+            datetime.datetime.combine(today, datetime.datetime.strptime(self.market_close, "%H:%M:%S").time())
+        )
+        return mo <= now <= mc
+
+    def should_start_monitoring(self) -> bool:
+        now = datetime.datetime.now(self.tz)
+        today = now.date()
+        monitor_time = self.tz.localize(
+            datetime.datetime.combine(today, datetime.datetime.strptime(self.monitor_start, "%H:%M:%S").time())
+        )
+        return now >= monitor_time
+
+    def can_open_new_trades(self) -> bool:
+        now = datetime.datetime.now(self.tz)
+        today = now.date()
+        no_new_trades = self.tz.localize(
+            datetime.datetime.combine(today, datetime.datetime.strptime(self.no_new_trades_time, "%H:%M:%S").time())
+        )
+        return now < no_new_trades
+
+    def is_force_close_time(self) -> bool:
+        now = datetime.datetime.now(self.tz)
+        today = now.date()
+        fct = self.tz.localize(
+            datetime.datetime.combine(today, datetime.datetime.strptime(self.force_close_time, "%H:%M:%S").time())
+        )
+        return now >= fct
+
+    # ---------------------------------------------------------------------
+    # Trading logic
+    # ---------------------------------------------------------------------
+    def place_order(self, contract, action: str, quantity: int):
+        order = MarketOrder(action, quantity)
+        trade = self.ib.placeOrder(contract, order)
+        self.ib.sleep(1)
+        print(f"{datetime.datetime.now(self.tz)} - {action} {quantity} {contract.localSymbol}")
+        return trade
+
+    def enter_position(self, position_type: str):
+        """Enter CALL or PUT position."""
+        right = "C" if position_type == "CALL" else "P"
+        option_contract = self.get_option_contract(right)
+        self.place_order(option_contract, "BUY", self.contracts)
+
+        position = {
+            'type': position_type,
+            'contract': option_contract,
+            'entry_underlying_price': self.get_underlying_price(),
+            'entry_option_price': self.ib.reqTickers(option_contract)[0].marketPrice(),
+            'entry_strike': option_contract.strike,
+            'contracts_remaining': self.contracts,
+            'half_sold': False,
+            'entry_time': datetime.datetime.now(self.tz)
+        }
+        
+        self.positions.append(position)
+        print(f"Entered {position_type} - Underlying: {position['entry_underlying_price']:.2f}")
+
+    def reset_daily_state(self):
+        """Reset daily trading state."""
+        self.positions = []
+        self.wait_for_ema20_cross = False
+        self.last_profit_side = None
 
     def get_intraday_5min(self, duration: str = "1 D") -> pd.DataFrame | None:
         contract = self.get_stock_contract()
@@ -302,7 +378,37 @@ class SPYBOSKStrategy:
                     if self.check_stop_loss(pos, last_candle):
                         self.exit_position(pos, "Stop loss")
                         continue
-                    # Profit targets (rest of your position management code)
+                    
+                    # PROFIT TARGET LOGIC:
+                    current_underlying = self.get_underlying_price()
+                    current_option_price = self.ib.reqTickers(pos['contract'])[0].marketPrice()
+                    
+                    # First profit target - underlying move
+                    if not pos['half_sold']:
+                        if pos['type'] == "CALL":
+                            if current_underlying >= pos['entry_underlying_price'] + self.underlying_move_target:
+                                self.exit_position(pos, "First profit target", partial=True)
+                                continue
+                        else:  # PUT
+                            if current_underlying <= pos['entry_underlying_price'] - self.underlying_move_target:
+                                self.exit_position(pos, "First profit target", partial=True)
+                                continue
+                    
+                    # Breakeven stop after half sold
+                    if pos['half_sold']:
+                        if current_option_price <= pos['entry_option_price']:
+                            self.exit_position(pos, "Breakeven stop")
+                            continue
+                    
+                    # Second profit target - ITM
+                    if pos['type'] == "CALL":
+                        if current_underlying >= pos['entry_strike'] + self.itm_offset:
+                            self.exit_position(pos, "Second profit target")
+                            continue
+                    else:  # PUT
+                        if current_underlying <= pos['entry_strike'] - self.itm_offset:
+                            self.exit_position(pos, "Second profit target")
+                            continue
 
                 # Pace loop
                 time.sleep(5)
@@ -315,3 +421,26 @@ class SPYBOSKStrategy:
                 self.close_all_positions("Shutdown")
             self.ib.disconnect()
             print("Disconnected from Interactive Brokers.")
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="SPY BOSK trading strategy")
+    parser.add_argument("--ticker", type=str, default="SPY", help="Underlying ticker symbol")
+    parser.add_argument("--contracts", type=int, default=2, help="Number of option contracts to trade")
+    parser.add_argument("--underlying_move_target", type=float, default=1.0, help="First profit target")
+    parser.add_argument("--itm_offset", type=float, default=1.05, help="Second profit target")
+    parser.add_argument("--paper_trading", action="store_true", help="Use paper trading")
+    parser.add_argument("--port", type=int, default=7498, help="Port number")
+
+    args = parser.parse_args()
+
+    strategy = SPYBOSKStrategy(
+        ticker=args.ticker,
+        contracts=args.contracts,
+        underlying_move_target=args.underlying_move_target,
+        itm_offset=args.itm_offset,
+        paper_trading=args.paper_trading,
+        port=args.port,
+    )
+    strategy.run()

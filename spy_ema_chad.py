@@ -68,7 +68,7 @@ class SPYEMAChad:
                     self.ib.disconnect()
                     time.sleep(1)
                 
-                self.ib.connect(host, port_to_use, clientId=client_id)
+                self.ib.connect(host, port, clientId=self.client_id)
                 print(f"Connected to Interactive Brokers {'Paper' if self.paper_trading else 'Live'} Trading")
                 return True
             except Exception as e:
