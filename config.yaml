@@ -10,7 +10,6 @@ strategies:
       ticker: "SPY"
       contracts: 2
       underlying_move_target: 1.55  # 1 ITM + $0.05 from strike
-      itm_offset: 2.05               # 2 ITM + $0.05 from strike
       paper_trading: true
       port: 7498
 
@@ -21,7 +20,6 @@ strategies:
       ticker: "SPX"
       contracts: 1
       underlying_move_target: 2.25  # 2 ITM + $0.25 from strike
-      itm_offset: 4.25               # 4 ITM + $0.25 from strike
       paper_trading: true
       port: 7498
 
@@ -32,7 +30,6 @@ strategies:
       ticker: "QQQ"
       contracts: 2
       underlying_move_target: 1.55  # same as SPY
-      itm_offset: 2.05
       paper_trading: true
       port: 7498
 
@@ -43,7 +40,6 @@ strategies:
       ticker: "NVDA"
       contracts: 2
       underlying_move_target: 0.50  # ATM + $0.02 with $0.50 minimum move
-      itm_offset: 1.02
       paper_trading: true
       port: 7498
 
@@ -54,7 +50,6 @@ strategies:
       ticker: "TSLA"
       contracts: 2
       underlying_move_target: 2.05  # ATM + $0.15 with $1.00 minimum move
-      itm_offset: 1.05               # 1 ITM + $0.05
       paper_trading: true
       port: 7498
 
@@ -65,7 +60,6 @@ strategies:
       ticker: "IWM"
       contracts: 2
       underlying_move_target: 0.50  # same as NVDA
-      itm_offset: 1.02
       paper_trading: true
       port: 7498
 
