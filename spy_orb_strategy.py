@@ -23,7 +23,7 @@ class SPYORBStrategy:
         self,
         ticker: str = "SPY",
         contracts: int = 2,
-        underlying_move_target: float = 1.0,
+        underlying_move_target: float = None,
         itm_offset: float = 1.05,
         market_open: str = "09:30:00",
         market_close: str = "16:00:00",
@@ -34,8 +34,38 @@ class SPYORBStrategy:
     ):
         self.ticker = ticker
         self.contracts = contracts
-        self.underlying_move_target = underlying_move_target
-        self.itm_offset = itm_offset
+        
+        # Set ticker-specific parameters
+        self.use_keltner_stop = ticker in ["NVDA", "TSLA", "AMZN", "IWM"]
+        
+        if underlying_move_target is None:
+            # Set defaults based on ticker
+            ticker_targets = {
+                "SPY": (1.0, 1.05),  # (first_target, itm_offset)
+                "QQQ": (1.0, 1.05),
+                "NVDA": (0.5, 0.5),  # (first_target, second_target_additional)
+                "TSLA": (2.0, 2.0),
+                "AMZN": (0.75, 0.75),
+                "IWM": (0.5, 0.5),
+            }
+            if ticker in ticker_targets:
+                self.underlying_move_target, self.second_target = ticker_targets[ticker]
+                if ticker in ["SPY", "QQQ"]:
+                    self.itm_offset = self.second_target
+                    self.use_itm_target = True
+                else:
+                    self.use_itm_target = False
+            else:
+                self.underlying_move_target = 1.0
+                self.second_target = 1.05
+                self.itm_offset = 1.05
+                self.use_itm_target = True
+        else:
+            self.underlying_move_target = underlying_move_target
+            self.itm_offset = itm_offset
+            self.second_target = itm_offset
+            self.use_itm_target = ticker in ["SPY", "QQQ"]
+        
         self.market_open = market_open
         self.market_close = market_close
         self.force_close_time = force_close_time
@@ -184,6 +214,22 @@ class SPYORBStrategy:
             f"Opening range set - High: {self.opening_range_high:.2f}, Low: {self.opening_range_low:.2f}"
         )
 
+    def calculate_keltner_channels(self, df: pd.DataFrame, period: int = 20, multiplier: float = 2.0):
+        """Calculate Keltner Channels for the given dataframe."""
+        df['ema'] = df['close'].ewm(span=period, adjust=False).mean()
+        df['atr'] = self.calculate_atr(df, period)
+        df['kc_upper'] = df['ema'] + (multiplier * df['atr'])
+        df['kc_lower'] = df['ema'] - (multiplier * df['atr'])
+        return df
+
+    def calculate_atr(self, df: pd.DataFrame, period: int = 20):
+        """Calculate Average True Range."""
+        df['h_l'] = df['high'] - df['low']
+        df['h_pc'] = abs(df['high'] - df['close'].shift())
+        df['l_pc'] = abs(df['low'] - df['close'].shift())
+        df['tr'] = df[['h_l', 'h_pc', 'l_pc']].max(axis=1)
+        return df['tr'].rolling(window=period).mean()
+
     # ---------------------------------------------------------------------
     # Order helpers
     # ---------------------------------------------------------------------
@@ -284,44 +330,74 @@ class SPYORBStrategy:
                     underlying_price = self.get_underlying_price()
                     option_price = self.ib.reqTickers(self.option_contract)[0].marketPrice()
 
-                    # Initial stop loss (based on opening range)
-                    last_closed = df.iloc[-2]
-                    if self.position == "CALL" and last_closed["close"] < self.opening_range_low:
-                        self.exit_all("Initial stop loss (CALL)")
-                        time.sleep(5)
-                        continue
-                    if self.position == "PUT" and last_closed["close"] > self.opening_range_high:
-                        self.exit_all("Initial stop loss (PUT)")
-                        time.sleep(5)
-                        continue
+                    # Stop loss logic based on ticker
+                    if self.use_keltner_stop:
+                        # Calculate Keltner Channels
+                        df_with_kc = self.calculate_keltner_channels(df.copy())
+                        latest_kc = df_with_kc.iloc[-1]
+                        
+                        # Keltner stop loss (real-time, not waiting for candle close)
+                        if self.position == "CALL" and underlying_price <= latest_kc['kc_lower']:
+                            self.exit_all("Keltner stop loss (CALL)")
+                            time.sleep(5)
+                            continue
+                        if self.position == "PUT" and underlying_price >= latest_kc['kc_upper']:
+                            self.exit_all("Keltner stop loss (PUT)")
+                            time.sleep(5)
+                            continue
+                    else:
+                        # Opening range stop loss (SPY/QQQ)
+                        last_closed = df.iloc[-2]
+                        if self.position == "CALL" and last_closed["close"] < self.opening_range_low:
+                            self.exit_all("Initial stop loss (CALL)")
+                            time.sleep(5)
+                            continue
+                        if self.position == "PUT" and last_closed["close"] > self.opening_range_high:
+                            self.exit_all("Initial stop loss (PUT)")
+                            time.sleep(5)
+                            continue
 
-                    # Profit target 1 - underlying +/- $1
+                    # Profit target 1
                     if not self.half_position_closed:
                         if self.position == "CALL" and underlying_price >= self.entry_underlying_price + self.underlying_move_target:
                             self.place_order("SELL", self.contracts // 2)
                             self.half_position_closed = True
-                            print("First profit target hit - sold half, stop moved to breakeven.")
+                            print(f"First profit target hit (${self.underlying_move_target} move) - sold half, stop moved to breakeven.")
                         elif self.position == "PUT" and underlying_price <= self.entry_underlying_price - self.underlying_move_target:
                             self.place_order("SELL", self.contracts // 2)
                             self.half_position_closed = True
-                            print("First profit target hit - sold half, stop moved to breakeven.")
+                            print(f"First profit target hit (${self.underlying_move_target} move) - sold half, stop moved to breakeven.")
 
-                    # Breakeven stop on remaining half
+                    # Breakeven stop on remaining half (adjusted stop loss)
                     if self.half_position_closed:
-                        if option_price <= self.entry_option_price:
-                            self.exit_all("Breakeven stop (remaining half)")
+                        # Use option price minus 0.01 as the threshold
+                        if option_price <= self.entry_option_price + 0.01:
+                            self.exit_all("Adjusted stop loss (breakeven)")
                             time.sleep(5)
                             continue
 
-                    # Profit target 2 - option 1.05 ITM
-                    if self.position == "CALL" and underlying_price >= self.entry_strike + self.itm_offset:
-                        self.exit_all("Second profit target (CALL)")
-                        time.sleep(5)
-                        continue
-                    if self.position == "PUT" and underlying_price <= self.entry_strike - self.itm_offset:
-                        self.exit_all("Second profit target (PUT)")
-                        time.sleep(5)
-                        continue
+                    # Profit target 2
+                    if self.use_itm_target:
+                        # SPY/QQQ: ITM-based target
+                        if self.position == "CALL" and underlying_price >= self.entry_strike + self.itm_offset:
+                            self.exit_all("Second profit target - ITM (CALL)")
+                            time.sleep(5)
+                            continue
+                        if self.position == "PUT" and underlying_price <= self.entry_strike - self.itm_offset:
+                            self.exit_all("Second profit target - ITM (PUT)")
+                            time.sleep(5)
+                            continue
+                    else:
+                        # Other tickers: additional underlying movement
+                        total_target = self.underlying_move_target + self.second_target
+                        if self.position == "CALL" and underlying_price >= self.entry_underlying_price + total_target:
+                            self.exit_all(f"Second profit target (${total_target} total move)")
+                            time.sleep(5)
+                            continue
+                        if self.position == "PUT" and underlying_price <= self.entry_underlying_price - total_target:
+                            self.exit_all(f"Second profit target (${total_target} total move)")
+                            time.sleep(5)
+                            continue
 
                 # Loop nap - 5-sec granularity is more than enough for 5-min bars
                 time.sleep(5)
@@ -342,18 +418,21 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="SPY Opening Range Breakout strategy")
     parser.add_argument("--ticker", type=str, default="SPY", help="Underlying ticker symbol")
     parser.add_argument("--contracts", type=int, default=2, help="Number of option contracts to trade")
-    parser.add_argument("--underlying_move_target", type=float, default=1.0, help="First profit target (underlying $ move)")
-    parser.add_argument("--itm_offset", type=float, default=1.05, help="Underlying distance beyond strike for second target")
+    parser.add_argument("--underlying_move_target", type=float, default=None, help="First profit target (underlying $ move, auto-set if not specified)")
+    parser.add_argument("--itm_offset", type=float, default=None, help="ITM offset for SPY/QQQ or second target for others (auto-set if not specified)")
     parser.add_argument("--paper_trading", action="store_true", help="Use paper trading account (7498)")
     parser.add_argument("--port", type=int, default=7498, help="Port number")
 
     args = parser.parse_args()
 
+    # Handle None values for auto-configuration
+    itm_offset = args.itm_offset if args.itm_offset is not None else 1.05
+
     strategy = SPYORBStrategy(
         ticker=args.ticker,
         contracts=args.contracts,
-        underlying_move_target=args.underlying_move_target,
-        itm_offset=args.itm_offset,
+        underlying_move_target=args.underlying_move_target,  # Can be None for auto-config
+        itm_offset=itm_offset,
         paper_trading=args.paper_trading,
         port=args.port,
     )
