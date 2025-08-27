@@ -202,7 +202,7 @@ class SPYORBStrategy:
         # Only use candles that start at or after market open and before range end
         opening_df = today_df[
             (today_df["date"] >= market_open_dt) & 
-            (today_df["date"] < range_end)
+            (today_df["date"] + pd.Timedelta(minutes=5) <= range_end)
         ]
         
         if len(opening_df) < 3:
@@ -318,24 +318,31 @@ class SPYORBStrategy:
                 df = self.get_intraday_5min()
                 if df is None or df.empty:
                     print("No historical data - waiting...")
-                    time.sleep(30)
+                    time.sleep(10)
                     continue
 
                 # Ensure opening range captured
                 if not self.opening_range_set:
                     self.calculate_opening_range(df)
-                    time.sleep(5)
+                    time.sleep(2)
                     continue  # Need the range before anything else
 
                 # Entry check (one trade per day)
                 if not daily_trade_done and self.position is None:
+                    # Ensure we're past the close of the last bar
                     last_closed = df.iloc[-2]  # Last *completed* 5-minute bar
-                    if last_closed["close"] > self.opening_range_high:
-                        if self.enter_position("CALL"):
-                            daily_trade_done = True
-                    elif last_closed["close"] < self.opening_range_low:
-                        if self.enter_position("PUT"):
-                            daily_trade_done = True
+                    last_closed_time = last_closed['date']
+                    bar_close_time = pd.Timestamp(last_closed_time).tz_localize(self.tz) + pd.Timedelta(minutes=5)
+                    current_time = datetime.datetime.now(self.tz)
+                    
+                    # Only check entry if the candle has actually closed
+                    if current_time >= bar_close_time:
+                        if last_closed["close"] > self.opening_range_high:
+                            if self.enter_position("CALL"):
+                                daily_trade_done = True
+                        elif last_closed["close"] < self.opening_range_low:
+                            if self.enter_position("PUT"):
+                                daily_trade_done = True
 
                 # Manage open position
                 if self.position is not None:
@@ -396,20 +403,9 @@ class SPYORBStrategy:
                         self.exit_all(f"Second profit target (${total_target} total move)")
                         time.sleep(5)
                         continue
-                    else:
-                        # Other tickers: additional underlying movement
-                        total_target = self.underlying_move_target + self.second_target
-                        if self.position == "CALL" and underlying_price >= self.entry_underlying_price + total_target:
-                            self.exit_all(f"Second profit target (${total_target} total move)")
-                            time.sleep(5)
-                            continue
-                        if self.position == "PUT" and underlying_price <= self.entry_underlying_price - total_target:
-                            self.exit_all(f"Second profit target (${total_target} total move)")
-                            time.sleep(5)
-                            continue
 
                 # Loop nap - 5-sec granularity is more than enough for 5-min bars
-                time.sleep(5)
+                time.sleep(2)
         except KeyboardInterrupt:
             print("User interrupted - shutting down.")
         except Exception as exc:
