@@ -332,7 +332,13 @@ class SPYORBStrategy:
                     # Ensure we're past the close of the last bar
                     last_closed = df.iloc[-2]  # Last *completed* 5-minute bar
                     last_closed_time = last_closed['date']
-                    bar_close_time = pd.Timestamp(last_closed_time).tz_localize(self.tz) + pd.Timedelta(minutes=5)
+                    
+                    # Don't localize if already timezone-aware
+                    if pd.api.types.is_datetime64_tz_dtype(last_closed_time):
+                        bar_close_time = last_closed_time + pd.Timedelta(minutes=5)
+                    else:
+                        bar_close_time = pd.Timestamp(last_closed_time).tz_localize(self.tz) + pd.Timedelta(minutes=5)
+                    
                     current_time = datetime.datetime.now(self.tz)
                     
                     # Only check entry if the candle has actually closed
@@ -375,16 +381,18 @@ class SPYORBStrategy:
                             print(f"First profit target hit (${self.underlying_move_target} move) - sold half, adjusting stop loss.")
                     
                     # Check if last closed candle's option price is below purchase price + 0.01
+                    # Adjusted stop loss (after first target hit)
                     if self.half_position_closed:
                         # Get the last closed bar's time
                         last_closed_bar = df.iloc[-2]
                         last_closed_time = last_closed_bar['date']
                         
-                        # We need to check if option closed below entry + 0.01
-                        # Since we can't get historical option prices easily, we use current price
-                        # and assume it represents the close if we're past the bar time
+                        # Don't localize if already timezone-aware
                         current_time = datetime.datetime.now(self.tz)
-                        bar_close_time = pd.Timestamp(last_closed_time).tz_localize(self.tz) + pd.Timedelta(minutes=5)
+                        if pd.api.types.is_datetime64_tz_dtype(last_closed_time):
+                            bar_close_time = last_closed_time + pd.Timedelta(minutes=5)
+                        else:
+                            bar_close_time = pd.Timestamp(last_closed_time).tz_localize(self.tz) + pd.Timedelta(minutes=5)
                         
                         if current_time >= bar_close_time:
                             # We're past the bar close, so current price represents a "closed" value
